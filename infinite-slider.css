@@ -1,0 +1,156 @@
+/**
+ * Infinite Slider Plugin for Squarespace List Sections
+ * Copyright Will-Myers.com
+ **/
+
+/* Custom Property Reference
+ * --slider-height-mobile: 100px;
+ * --slider-height-desktop: 150px;
+ * --slider-gap: 20px;
+ * --fade-width: 10%;
+ * --image-fit: cover;
+ * --aspect-ratio: auto;
+ * --fade-color: var(--siteBackgroundColor, #ffffff);
+ * --link-hover-opacity: 0.85;
+ * --scroll-distance: -50%; (set by JS at runtime)
+ * --scroll-duration: 30s; (set by JS at runtime)
+ */
+
+/* Custom content wrapper */
+[data-wm-plugin="infinite-slider"] .wm-plugin-content {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Slider wrapper with fade edges */
+[data-wm-plugin="infinite-slider"] .infinite-slider-wrapper {
+  position: relative;
+  width: 100%;
+  height: var(--slider-height-mobile, 100px);
+  overflow: hidden;
+}
+
+/* Fade edges */
+[data-wm-plugin="infinite-slider"] .infinite-slider-wrapper::before,
+[data-wm-plugin="infinite-slider"] .infinite-slider-wrapper::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--fade-width, 10%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+[data-wm-plugin="infinite-slider"] .infinite-slider-wrapper::before {
+  left: -1px;
+  background: linear-gradient(
+    to right, 
+    var(--fade-color, var(--siteBackgroundColor, #ffffff)) 0%, 
+    transparent 100%
+  );
+}
+
+[data-wm-plugin="infinite-slider"] .infinite-slider-wrapper::after {
+  right: -1px;
+  background: linear-gradient(
+    to left, 
+    var(--fade-color, var(--siteBackgroundColor, #ffffff)) 0%, 
+    transparent 100%
+  );
+}
+
+/* Slider track */
+[data-wm-plugin="infinite-slider"] .infinite-slider-track {
+  display: flex;
+  gap: var(--slider-gap, 20px);
+  width: max-content;
+  height: 100%;
+  animation: scroll-infinite var(--scroll-duration, 30s) linear infinite;
+  animation-play-state: running;
+  will-change: transform;
+}
+
+/* Reverse direction */
+[data-wm-plugin="infinite-slider"] .infinite-slider-track[data-reverse="true"] {
+  animation-name: scroll-infinite-reverse;
+}
+
+/* Pause on hover */
+[data-wm-plugin="infinite-slider"].paused .infinite-slider-track {
+  animation-play-state: paused;
+}
+
+/* Individual slide items */
+[data-wm-plugin="infinite-slider"] .infinite-slider-item {
+  flex-shrink: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Image wrapper */
+[data-wm-plugin="infinite-slider"] .infinite-slider-image {
+  height: 100%;
+  width: auto;
+  aspect-ratio: var(--aspect-ratio, auto);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Clickable links */
+[data-wm-plugin="infinite-slider"] .infinite-slider-image[href] {
+  cursor: pointer;
+  text-decoration: none;
+  /* transition: opacity 0.3s ease; */
+  opacity: 1;
+}
+
+[data-wm-plugin="infinite-slider"] .infinite-slider-image[href]:hover {
+  opacity: var(--link-hover-opacity, 0.85);
+}
+
+/* Images */
+[data-wm-plugin="infinite-slider"] .infinite-slider-image img {
+  height: 100%;
+  width: 100%;
+  object-fit: var(--image-fit, cover);
+  display: block;
+}
+
+/* Desktop styles */
+@media (min-width: 768px) {
+  [data-wm-plugin="infinite-slider"] .infinite-slider-wrapper {
+    height: var(--slider-height-desktop, 150px);
+  }
+}
+
+/* Animation keyframes */
+@keyframes scroll-infinite {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(var(--scroll-distance, -50%));
+  }
+}
+
+@keyframes scroll-infinite-reverse {
+  0% {
+    transform: translateX(var(--scroll-distance, -50%));
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  [data-wm-plugin="infinite-slider"] .infinite-slider-track {
+    animation-duration: calc(var(--scroll-duration, 30s) * 3);
+  }
+}
