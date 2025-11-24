@@ -6,21 +6,62 @@
 /* Custom Property Reference
  * --slider-height-mobile: 100px;
  * --slider-height-desktop: 150px;
- * --slider-gap: 20px;
+ * --slider-gap: 20px; (cascading priority: user → system → fallback)
+ * --system-slider-gap: auto; (set by JS when preserveStructure is true)
+ * --item-width: auto; (cascading priority: user → system → fallback, preserveStructure only)
+ * --system-item-width: auto; (set by JS from maxColumns when preserveStructure is true)
+ * --preserved-item-min-width-mobile: 50vw; (preserveStructure only, mobile)
+ * --preserved-item-max-width-mobile: 88vw; (preserveStructure only, mobile)
+ * --preserved-gap-mobile: 17px; (preserveStructure only, mobile)
  * --fade-width: 10%;
  * --image-fit: cover;
  * --aspect-ratio: auto;
  * --fade-color: var(--siteBackgroundColor, #ffffff);
  * --link-hover-opacity: 0.85;
+ * --cursor-background: var(--siteBackgroundColor, #ffffff);
+ * --cursor-color: var(--list-section-title-color, #000000);
+ * --cursor-padding: 12px 20px;
+ * --cursor-border-radius: 50px;
+ * --cursor-font-size: 14px;
+ * --icon-size: 20px; (icon size inside cursor)
+ * Note: Cursor inherits data-section-theme from first slider with customCursor enabled
+ * Note: Cursor offset and lag are controlled in JavaScript for performance
+ * Note: Gap cascade: --slider-gap (user) → --system-slider-gap (auto from settings) → 20px (fallback)
+ * Note: Width cascade (preserveStructure): --item-width (user) → --system-item-width (calc from maxColumns) → auto (fallback)
  * --scroll-distance: -50%; (set by JS at runtime)
  * --scroll-duration: 30s; (set by JS at runtime)
  */
+
+/* Hide original container (source of truth) */
+[data-wm-plugin="infinite-slider"] .user-items-list-item-container:not(.wm-plugin-container) {
+  display: none !important;
+}
+
+/* Visually hide button when clickthrough is enabled (accessible to screen readers & keyboard) */
+[data-wm-plugin="infinite-slider"][data-allow-clickthrough="true"] .list-item-content__button-container {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Ensure plugin container is visible and takes full width */
+[data-wm-plugin="infinite-slider"] .wm-plugin-container {
+  display: block !important;
+  width: 100%;
+}
 
 /* Custom content wrapper */
 [data-wm-plugin="infinite-slider"] .wm-plugin-content {
   width: 100%;
   overflow: hidden;
   position: relative;
+  display: block !important;
 }
 
 /* Slider wrapper with fade edges */
@@ -61,15 +102,22 @@
   );
 }
 
-/* Slider track */
+/* Slider track (ul for Squarespace consistency) */
 [data-wm-plugin="infinite-slider"] .infinite-slider-track {
-  display: flex;
-  gap: var(--slider-gap, 20px);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  grid-template-rows: 1fr;
+  align-items: stretch;
+  gap: var(--slider-gap, var(--system-slider-gap, 20px));
   width: max-content;
   height: 100%;
   animation: scroll-infinite var(--scroll-duration, 30s) linear infinite;
   animation-play-state: running;
   will-change: transform;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 /* Reverse direction */
@@ -83,17 +131,74 @@
 }
 
 /* Individual slide items */
-[data-wm-plugin="infinite-slider"] .infinite-slider-item {
-  flex-shrink: 0;
-  height: 100%;
+[data-wm-plugin="infinite-slider"]:not([data-preserve-structure="true"]) .infinite-slider-item {
+  min-height: 0; /* Allow grid item to shrink below content size */
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Image wrapper */
-[data-wm-plugin="infinite-slider"] .infinite-slider-image {
+[data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item {
+  min-height: var(--system-min-slide-height, auto);
+}
+
+/* Preserved structure: ensure images fit properly */
+[data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-wrapper {
+  height: auto;
+}
+
+[data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item.list-item,
+[data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item-wrapper {
+  /* Override list-item defaults for slider context */
+  width: var(--item-width, var(--system-item-width, auto)) !important;
+  transform: unset !important;
+  pointer-events: auto;
+  user-select: auto;
+  position: relative;
+  grid-row-start: auto;
+  grid-row-end: auto;
+  grid-column-start: auto;
+  grid-column-end: auto;
+}
+
+[data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item-wrapper .list-item {
+  width: 100% !important;
+}
+
+[data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item .list-item-media-container {
   height: 100%;
+  width: auto;
+  margin-bottom: 0 !important;
+}
+
+/* [data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item .list-item-media-inner {
+  height: 100%;
+  width: auto;
+} */
+
+[data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item .list-item-media {
+  height: 100%;
+  width: auto;
+  object-fit: var(--image-fit, cover);
+}
+
+/* Preserved structure: mobile defaults */
+@media (max-width: 767px) {
+  [data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-track {
+    gap: var(--slider-gap, var(--preserved-gap-mobile, 17px));
+  }
+  
+  [data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item.list-item,
+  [data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item-wrapper {
+    min-width: var(--preserved-item-min-width-mobile, 70vw);
+    max-width: var(--preserved-item-max-width-mobile, 88vw);
+  }
+}
+
+/* Image wrapper - only for non-preserved structure */
+[data-wm-plugin="infinite-slider"]:not([data-preserve-structure="true"]) .infinite-slider-image {
+  height: 100%;
+  max-height: 100%;
   width: auto;
   aspect-ratio: var(--aspect-ratio, auto);
   display: flex;
@@ -102,22 +207,25 @@
   overflow: hidden;
 }
 
-/* Clickable links */
-[data-wm-plugin="infinite-slider"] .infinite-slider-image[href] {
+/* Clickable links - only for non-preserved structure */
+[data-wm-plugin="infinite-slider"]:not([data-preserve-structure="true"]) .infinite-slider-image[href] {
   cursor: pointer;
   text-decoration: none;
   /* transition: opacity 0.3s ease; */
   opacity: 1;
+  position: relative;
 }
 
-[data-wm-plugin="infinite-slider"] .infinite-slider-image[href]:hover {
+[data-wm-plugin="infinite-slider"]:not([data-preserve-structure="true"]) .infinite-slider-image[href]:hover {
   opacity: var(--link-hover-opacity, 0.85);
 }
 
-/* Images */
-[data-wm-plugin="infinite-slider"] .infinite-slider-image img {
+
+/* Images - only for non-preserved structure */
+[data-wm-plugin="infinite-slider"]:not([data-preserve-structure="true"]) .infinite-slider-image img {
   height: 100%;
-  width: 100%;
+  max-height: 100%;
+  width: auto;
   object-fit: var(--image-fit, cover);
   display: block;
 }
@@ -145,6 +253,57 @@
   }
   100% {
     transform: translateX(0);
+  }
+}
+
+/* Custom cursor */
+.infinite-slider-custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: var(--cursor-background, var(--siteBackgroundColor, #ffffff));
+  color: var(--cursor-color, var(--list-section-title-color, #000000));
+  padding: var(--cursor-padding, 12px 20px);
+  border-radius: var(--cursor-border-radius, 50px);
+  font-size: var(--cursor-font-size, 14px);
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  transform: translate(0, 0);
+  transition: opacity 0.2s ease, width 0.2s ease;
+  will-change: transform;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.infinite-slider-custom-cursor.active {
+  opacity: 1;
+}
+
+.infinite-slider-cursor-text {
+  display: inline-block;
+}
+
+.infinite-slider-cursor-icon {
+  flex-shrink: 0;
+  width: var(--icon-size, 20px);
+  height: var(--icon-size, 20px);
+}
+
+.infinite-slider-cursor-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Hide custom cursor on mobile */
+@media (max-width: 767px) {
+  .infinite-slider-custom-cursor {
+    display: none;
   }
 }
 
