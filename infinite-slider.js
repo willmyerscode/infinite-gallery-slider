@@ -44,6 +44,7 @@ class WMInfiniteSlider {
     this.imagesLoaded = false;
     this.customCursorEl = null; // Reference to shared cursor (if enabled)
     this._cursorHandlers = null; // Store cursor event handlers for cleanup
+    this.lastWindowWidth = window.innerWidth; // Track width for resize detection (iOS dynamic URL bar fix)
 
     this.init();
   }
@@ -257,9 +258,20 @@ class WMInfiniteSlider {
     // Add index for cursor tracking
     slide.dataset.index = index;
 
+    // Get item data for this slide
+    const itemData = this.data[index];
+
+    // Set focal point on images based on mediaFocalPoint
+    if (itemData?.image?.mediaFocalPoint) {
+      const {x, y} = itemData.image.mediaFocalPoint;
+      const img = slide.querySelector("img");
+      if (img) {
+        img.style.objectPosition = `${x * 100}% ${y * 100}%`;
+      }
+    }
+
     // Add clickthrough behavior for preserved mode
     if (this.settings.allowClickthrough) {
-      const itemData = this.data[index];
       const buttonLink = itemData?.button?.buttonLink;
       
       if (buttonLink) {
@@ -345,6 +357,12 @@ class WMInfiniteSlider {
     const originalSlides = Array.from(sliderTrack.children);
     sliderTrack.dataset.originalCount = originalSlides.length;
 
+    // For preserveStructure mode, calculate and set explicit widths
+    // Squarespace list items use CSS Grid for sizing, which doesn't transfer to our flex container
+    if (this.settings.preserveStructure) {
+      this.setPreserveStructureWidths(originalSlides, sliderTrack);
+    }
+
     // Calculate how many duplications we need
     const viewportWidth = window.innerWidth;
     const trackWidth = sliderTrack.scrollWidth;
@@ -372,6 +390,84 @@ class WMInfiniteSlider {
         sliderTrack.appendChild(clone);
       });
     }
+  }
+
+  setPreserveStructureWidths(slides, sliderTrack) {
+    // Follow Squarespace's responsive column logic for list sections
+    // This replicates how Squarespace sizes items based on maxColumns and breakpoints
+    const viewportWidth = window.innerWidth;
+    const maxColumns = this.options.maxColumns || 3;
+    
+    // Get container width (respects --sqs-site-max-width)
+    const sqsSiteMaxWidth = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--sqs-site-max-width')
+    ) || 1500;
+    const containerWidth = Math.min(sqsSiteMaxWidth, viewportWidth);
+    
+    // Get gap from computed styles
+    const gap = parseFloat(getComputedStyle(sliderTrack).gap) || 20;
+    
+    // Calculate effective columns based on Squarespace's breakpoint logic
+    const effectiveColumns = this.getEffectiveColumns(maxColumns, viewportWidth);
+    
+    // Calculate item width: (containerWidth - totalGaps) / columns
+    const totalGapWidth = gap * (effectiveColumns - 1);
+    const itemWidth = Math.round((containerWidth - totalGapWidth) / effectiveColumns);
+    
+    // Calculate card padding if enabled (convert % to px based on item width)
+    let cardPadding = null;
+    if (this.options.isCardEnabled) {
+      cardPadding = this.calculateCardPadding(itemWidth);
+    }
+    
+    // Apply to all slides
+    slides.forEach(slide => {
+      slide.style.setProperty('--item-width', `${itemWidth}px`);
+      
+      // Apply calculated card padding if card is enabled
+      if (cardPadding) {
+        slide.style.setProperty('--card-padding-top', cardPadding.top);
+        slide.style.setProperty('--card-padding-right', cardPadding.right);
+        slide.style.setProperty('--card-padding-bottom', cardPadding.bottom);
+        slide.style.setProperty('--card-padding-left', cardPadding.left);
+      }
+    });
+  }
+
+  calculateCardPadding(itemWidth) {
+    // Convert percentage-based card padding to pixels based on item width
+    // This fixes the flex vs grid percentage calculation difference
+    const convertPadding = (paddingOption) => {
+      if (!paddingOption) return '0px';
+      const { value, unit } = paddingOption;
+      if (unit === '%') {
+        // Calculate percentage of item width
+        return `${Math.round(itemWidth * (value / 100))}px`;
+      }
+      // For other units, return as-is
+      return `${value}${unit}`;
+    };
+
+    return {
+      top: convertPadding(this.options.cardPaddingTop),
+      right: convertPadding(this.options.cardPaddingRight),
+      bottom: convertPadding(this.options.cardPaddingBottom),
+      left: convertPadding(this.options.cardPaddingLeft)
+    };
+  }
+
+  getEffectiveColumns(maxColumns, viewportWidth) {
+    // Replicate Squarespace's responsive column breakpoints:
+    // - Default (< 576px): 1 column
+    // - 576px+: 2 columns (if maxColumns >= 2)
+    // - 992px+: 3 columns (if maxColumns >= 3)
+    // - 1100px+: 4 columns (if maxColumns >= 4)
+    // - 1200px+: 5-6 columns (if maxColumns >= 5 or 6)
+    if (viewportWidth < 576) return 1;
+    if (viewportWidth < 992) return Math.min(maxColumns, 2);
+    if (viewportWidth < 1100) return Math.min(maxColumns, 3);
+    if (viewportWidth < 1200) return Math.min(maxColumns, 4);
+    return Math.min(maxColumns, 6);
   }
 
   calculateAnimation(sliderTrack) {
@@ -594,8 +690,16 @@ class WMInfiniteSlider {
   }
 
   bindEvents() {
-    // Debounced resize handler
+    // Debounced resize handler - only triggers on WIDTH changes
+    // This filters out iOS Safari's phantom resize events from the dynamic URL bar
     window.addEventListener("resize", () => {
+      const currentWidth = window.innerWidth;
+      
+      // Skip if width hasn't changed (filters phantom resize from iOS URL bar)
+      if (currentWidth === this.lastWindowWidth) return;
+      
+      this.lastWindowWidth = currentWidth;
+      
       clearTimeout(this.resizeTimer);
       this.resizeTimer = setTimeout(() => {
         this.resetSlider();
