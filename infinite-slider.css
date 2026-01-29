@@ -104,10 +104,8 @@
 
 /* Slider track (ul for Squarespace consistency) */
 [data-wm-plugin="infinite-slider"] .infinite-slider-track {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  grid-template-rows: 1fr;
+  display: flex;
+  flex-flow: row nowrap;
   align-items: stretch;
   gap: var(--slider-gap, var(--system-slider-gap, 20px));
   width: max-content;
@@ -132,7 +130,7 @@
 
 /* Individual slide items */
 [data-wm-plugin="infinite-slider"]:not([data-preserve-structure="true"]) .infinite-slider-item {
-  min-height: 0; /* Allow grid item to shrink below content size */
+  flex: 0 0 auto; /* Don't grow or shrink, size based on content */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,15 +148,22 @@
 [data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item.list-item,
 [data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item-wrapper {
   /* Override list-item defaults for slider context */
+  flex: 0 0 auto; /* Don't grow or shrink */
   width: var(--item-width, var(--system-item-width, auto)) !important;
   transform: unset !important;
   pointer-events: auto;
   user-select: auto;
   position: relative;
-  grid-row-start: auto;
-  grid-row-end: auto;
-  grid-column-start: auto;
-  grid-column-end: auto;
+  /* Use calculated padding (converted from % to px based on item width) or reset to 0 */
+  padding-top: var(--card-padding-top, 0) !important;
+  padding-right: var(--card-padding-right, 0) !important;
+  padding-bottom: var(--card-padding-bottom, 0) !important;
+  padding-left: var(--card-padding-left, 0) !important;
+}
+
+/* Reset percentage padding on nested Squarespace elements */
+[data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item .list-item-content {
+  padding: 0 !important;
 }
 
 [data-wm-plugin="infinite-slider"][data-preserve-structure="true"] .infinite-slider-item-wrapper .list-item {
