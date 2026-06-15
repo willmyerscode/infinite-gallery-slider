@@ -201,9 +201,14 @@
 }
 
 /* Image wrapper - only for non-preserved structure */
+/* Use the explicit height variable (not height:100%) so the width can be
+   derived from the image aspect ratio during intrinsic sizing. Firefox falls
+   back to the image's natural pixel width when the percentage height is
+   indefinite, which inflates each item to thousands of px wide (see desktop
+   override below for the matching height). */
 [data-wm-plugin="infinite-slider"]:not([data-preserve-structure="true"]) .infinite-slider-image {
-  height: 100%;
-  max-height: 100%;
+  height: var(--slider-height-mobile, 100px);
+  max-height: var(--slider-height-mobile, 100px);
   width: auto;
   aspect-ratio: var(--aspect-ratio, auto);
   display: flex;
@@ -228,8 +233,8 @@
 
 /* Images - only for non-preserved structure */
 [data-wm-plugin="infinite-slider"]:not([data-preserve-structure="true"]) .infinite-slider-image img {
-  height: 100%;
-  max-height: 100%;
+  height: var(--slider-height-mobile, 100px);
+  max-height: var(--slider-height-mobile, 100px);
   width: auto;
   object-fit: var(--image-fit, cover);
   display: block;
@@ -239,6 +244,14 @@
 @media (min-width: 768px) {
   [data-wm-plugin="infinite-slider"] .infinite-slider-wrapper {
     height: var(--slider-height-desktop, 150px);
+  }
+
+  /* Keep image height in sync with the desktop wrapper height so width is
+     derived from the aspect ratio (Firefox intrinsic-sizing fix) */
+  [data-wm-plugin="infinite-slider"]:not([data-preserve-structure="true"]) .infinite-slider-image,
+  [data-wm-plugin="infinite-slider"]:not([data-preserve-structure="true"]) .infinite-slider-image img {
+    height: var(--slider-height-desktop, 150px);
+    max-height: var(--slider-height-desktop, 150px);
   }
 }
 
