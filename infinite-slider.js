@@ -28,6 +28,7 @@ class WMInfiniteSlider {
       customCursor: false, // enable custom cursor with item title
       cursorTheme: null, // custom theme for cursor (defaults to section theme)
       preserveStructure: false, // preserve original list section HTML structure
+      pauseButton: false, // show a WCAG 2.2.2 compliant pause/play toggle button
       ...settings,
     };
     this.data = null;
@@ -44,6 +45,8 @@ class WMInfiniteSlider {
     this.imagesLoaded = false;
     this.customCursorEl = null; // Reference to shared cursor (if enabled)
     this._cursorHandlers = null; // Store cursor event handlers for cleanup
+    this.pauseButton = null; // Reference to pause/play toggle button (if enabled)
+    this.userPaused = false; // Track explicit user pause from the toggle button
     this.lastWindowWidth = window.innerWidth; // Track width for resize detection (iOS dynamic URL bar fix)
 
     this.init();
@@ -188,6 +191,12 @@ class WMInfiniteSlider {
     }
 
     sliderWrapper.appendChild(sliderTrack);
+
+    // WCAG 2.2.2 (Pause, Stop, Hide): add pause/play toggle when enabled
+    if (this.settings.pauseButton) {
+      sliderWrapper.appendChild(this.buildPauseButton());
+    }
+
     customContent.appendChild(sliderWrapper);
     this.pluginContainer.appendChild(customContent);
 
@@ -689,6 +698,42 @@ class WMInfiniteSlider {
     WMInfiniteSlider.sharedCursor.rafId = requestAnimationFrame(animate);
   }
 
+  buildPauseButton() {
+    // WCAG 2.2.2 (Pause, Stop, Hide): give users explicit control over the
+    // continuously animating slider. The slider starts playing, so the button
+    // shows the pause icon and labels itself "Pause slideshow" initially.
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "infinite-slider-pause-toggle";
+    button.dataset.playing = "true";
+    button.setAttribute("aria-label", "Pause slideshow");
+    button.innerHTML = `
+      <svg class="infinite-slider-icon-pause" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+        <rect x="6" y="4" width="4" height="16"/>
+        <rect x="14" y="4" width="4" height="16"/>
+      </svg>
+      <svg class="infinite-slider-icon-play" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+        <polygon points="6,4 20,12 6,20"/>
+      </svg>`;
+
+    return button;
+  }
+
+  togglePause() {
+    this.userPaused = !this.userPaused;
+    this.setPaused(this.userPaused);
+  }
+
+  setPaused(paused) {
+    // The .paused class drives animation-play-state in CSS (shared with stopOnHover)
+    this.el.classList.toggle("paused", paused);
+
+    if (this.pauseButton) {
+      this.pauseButton.dataset.playing = String(!paused);
+      this.pauseButton.setAttribute("aria-label", paused ? "Play slideshow" : "Pause slideshow");
+    }
+  }
+
   bindEvents() {
     // Debounced resize handler - only triggers on WIDTH changes
     // This filters out iOS Safari's phantom resize events from the dynamic URL bar
@@ -715,8 +760,17 @@ class WMInfiniteSlider {
         });
 
         sliderWrapper.addEventListener("mouseleave", () => {
-          this.el.classList.remove("paused");
+          // Respect an explicit user pause from the toggle button
+          if (!this.userPaused) this.el.classList.remove("paused");
         });
+      }
+    }
+
+    // WCAG 2.2.2 (Pause, Stop, Hide): wire up the pause/play toggle button
+    if (this.settings.pauseButton) {
+      this.pauseButton = this.el.querySelector(".infinite-slider-pause-toggle");
+      if (this.pauseButton) {
+        this.pauseButton.addEventListener("click", () => this.togglePause());
       }
     }
   }
@@ -745,6 +799,11 @@ class WMInfiniteSlider {
     }
 
     this.customCursorEl = null;
+
+    // Clean up pause/play toggle state (button is removed with wm-plugin-content)
+    this.el.classList.remove("paused");
+    this.pauseButton = null;
+    this.userPaused = false;
 
     // Remove the plugin container (duplicate)
     if (this.pluginContainer) {
