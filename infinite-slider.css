@@ -37,8 +37,11 @@
   display: none !important;
 }
 
-/* Visually hide button when clickthrough is enabled (accessible to screen readers & keyboard) */
-[data-wm-plugin="infinite-slider"][data-allow-clickthrough="true"] .list-item-content__button-container {
+/* Visually hide button when clickthrough is enabled (accessible to screen readers & keyboard).
+   Scoped to non-preserveStructure mode: when the original list structure is preserved, the
+   List Item Button is intentional content the user added, so it stays visible even with
+   clickthrough on (the slide click handler ignores clicks on real <a> links). */
+[data-wm-plugin="infinite-slider"][data-allow-clickthrough="true"]:not([data-preserve-structure="true"]) .list-item-content__button-container {
   position: absolute !important;
   width: 1px !important;
   height: 1px !important;
