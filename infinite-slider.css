@@ -30,6 +30,15 @@
  * Note: Width cascade (preserveStructure): --item-width (user) → --system-item-width (calc from maxColumns) → auto (fallback)
  * --scroll-distance: -50%; (set by JS at runtime)
  * --scroll-duration: 30s; (set by JS at runtime)
+ * Pause/Play toggle (pauseButton setting, WCAG 2.2.2):
+ * --pause-toggle-bottom: 12px;
+ * --pause-toggle-left: 12px;
+ * --pause-toggle-size: 36px; (30px on mobile)
+ * --pause-toggle-icon-size: 14px;
+ * --pause-toggle-background: rgba(0, 0, 0, 0.55);
+ * --pause-toggle-color: #ffffff; (icon + focus outline color)
+ * --pause-toggle-opacity: 0.85;
+ * --pause-toggle-border-radius: 50%;
  */
 
 /* Hide original container (source of truth) */
@@ -129,6 +138,59 @@
 /* Pause on hover */
 [data-wm-plugin="infinite-slider"].paused .infinite-slider-track {
   animation-play-state: paused;
+}
+
+/* Pause/Play toggle button (WCAG 2.2.2 Pause, Stop, Hide) */
+[data-wm-plugin="infinite-slider"] .infinite-slider-pause-toggle {
+  position: absolute;
+  bottom: var(--pause-toggle-bottom, 12px);
+  left: var(--pause-toggle-left, 12px);
+  z-index: 3; /* above the fade edges (z-index 2) */
+  margin: 0;
+  padding: 0;
+  border: none;
+  width: var(--pause-toggle-size, 36px);
+  height: var(--pause-toggle-size, 36px);
+  background: var(--pause-toggle-background, rgba(0, 0, 0, 0.55));
+  opacity: var(--pause-toggle-opacity, 0.85);
+  border-radius: var(--pause-toggle-border-radius, 50%);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: opacity 0.3s ease;
+}
+
+[data-wm-plugin="infinite-slider"] .infinite-slider-pause-toggle:hover,
+[data-wm-plugin="infinite-slider"] .infinite-slider-pause-toggle:focus-visible {
+  opacity: 1;
+}
+
+[data-wm-plugin="infinite-slider"] .infinite-slider-pause-toggle:focus-visible {
+  outline: 2px solid var(--pause-toggle-color, #ffffff);
+  outline-offset: 2px;
+}
+
+[data-wm-plugin="infinite-slider"] .infinite-slider-pause-toggle svg {
+  width: var(--pause-toggle-icon-size, 14px);
+  height: var(--pause-toggle-icon-size, 14px);
+  fill: var(--pause-toggle-color, #ffffff);
+  display: block;
+}
+
+/* Swap pause/play icons based on play state */
+[data-wm-plugin="infinite-slider"] .infinite-slider-pause-toggle[data-playing="true"] .infinite-slider-icon-play {
+  display: none;
+}
+
+[data-wm-plugin="infinite-slider"] .infinite-slider-pause-toggle[data-playing="false"] .infinite-slider-icon-pause {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  [data-wm-plugin="infinite-slider"] .infinite-slider-pause-toggle {
+    width: var(--pause-toggle-size, 30px);
+    height: var(--pause-toggle-size, 30px);
+  }
 }
 
 /* Individual slide items */
